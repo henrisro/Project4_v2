@@ -9,6 +9,7 @@
 #include <fstream>
 #include <iomanip>
 #include "lib.h"
+#include <time.h>
 using namespace  std;
 
 ofstream ofile;
@@ -24,14 +25,17 @@ void initialize(int, double, int **, double&, double&);
 // The metropolis algorithm 
 void Metropolis(int, long&, int **, double&, double&, double *);
 // prints to file the results of the calculations  
-void output(int, int, double, double *);
+void output(int, int, double, double *, double);
 
 int main(int argc, char* argv[])
 {
   char *outfilename;
   long idum;
-  int **spin_matrix, n_spins, mcs;
+  int **spin_matrix, n_spins, mcs, mcs_i;
   double w[17], average[5], initial_temp, final_temp, E, M, temp_step;
+  // This should really be adjusted as temperature is changed:
+  int steady_state_tolerance_cycles = 5E3;
+  double calculation_time;
 
   // Read in output file, abort if there are too few command-line arguments
   if( argc <= 1 ){
@@ -45,26 +49,44 @@ int main(int argc, char* argv[])
   ofile.open(outfilename);
   //    Read in initial values such as size of lattice, temp and cycles
   read_input(n_spins, mcs, initial_temp, final_temp, temp_step);
+  int effective_mcs = mcs - steady_state_tolerance_cycles;
+  int initial_temp_bol = 1; // Boolean variable: 1 if initial configuration.
   spin_matrix = (int**) matrix(n_spins, n_spins, sizeof(int));
+  // Initialization of spin matrix (ordered initial state for low temps):
+  E = M = 0.;
+  double temperature = initial_temp;
+  initialize(n_spins, temperature, spin_matrix, E, M);
+
   idum = -1; // random starting point
-  for ( double temperature = initial_temp; temperature <= final_temp; temperature+=temp_step){
-    //    initialise energy and magnetization 
-    E = M = 0.;
+  for (double temperature = initial_temp; temperature <= final_temp; temperature+=temp_step){
     // setup array for possible energy changes
     for( int de =-8; de <= 8; de++) w[de+8] = 0;
     for( int de =-8; de <= 8; de+=4) w[de+8] = exp(-de/temperature);
     // initialise array for expectation values
     for( int i = 0; i < 5; i++) average[i] = 0.;
-    initialize(n_spins, temperature, spin_matrix, E, M);
+
+    // Manual initialization here not needed 
+    // – use previous spin matrix as initial for the next computation.
+
+    //initialize(n_spins, temperature, spin_matrix, E, M);
     // start Monte Carlo computation
+    clock_t start, finish;
+    start = clock();
     for (int cycles = 1; cycles <= mcs; cycles++){
       Metropolis(n_spins, idum, spin_matrix, E, M, w);
       // update expectation values
-      average[0] += E;    average[1] += E*E;
-      average[2] += M;    average[3] += M*M; average[4] += fabs(M);
+      // Initialize time:
+      if (cycles >= steady_state_tolerance_cycles) {
+        //cout << "Hit! Average contributions counted. cycles = " << cycles << endl;
+        average[0] += E;    average[1] += E*E;
+        average[2] += M;    average[3] += M*M; average[4] += fabs(M);
+      }
     }
-    // print results
-    output(n_spins, mcs, temperature, average);
+    finish = clock();
+    calculation_time = (finish - start)/(double)CLOCKS_PER_SEC;
+    // write final results to file:
+    //cout << "Final effective number of cycles: " << effective_mcs << endl;
+    output(n_spins, effective_mcs, temperature, average, calculation_time);
   }
   free_matrix((void **) spin_matrix); // free memory
   ofile.close();  // close output file
@@ -93,25 +115,25 @@ void initialize(int n_spins, double temperature, int **spin_matrix,
 		double& E, double& M)
 {
   // setup spin matrix and intial magnetization
-  // for(int y =0; y < n_spins; y++) {
-  //   for (int x= 0; x < n_spins; x++){
-  //     spin_matrix[y][x] = 1; // spin orientation for the ground state
-  //     M +=  (double) spin_matrix[y][x];
-  //   }
-  // }
-
-  long idum_dum = -2;
   for(int y =0; y < n_spins; y++) {
-     for (int x= 0; x < n_spins; x++){
-       double a = (double) ran1(&idum_dum);
-       int r = 1;
-       if (a < 0.5) {r = -1;}
-       //cout << r;
-       spin_matrix[y][x] = r; // spin orientation for the random state
-       M += spin_matrix[y][x];
-     }
-     //cout << endl;
+    for (int x= 0; x < n_spins; x++){
+      spin_matrix[y][x] = 1; // spin orientation for the ground state
+      M +=  (double) spin_matrix[y][x];
+    }
   }
+
+  // long idum_dum = -2;
+  // for(int y =0; y < n_spins; y++) {
+  //    for (int x= 0; x < n_spins; x++){
+  //      double a = (double) ran1(&idum_dum);
+  //      int r = 1;
+  //      if (a < 0.5) {r = -1;}
+  //      //cout << r;
+  //      spin_matrix[y][x] = r; // spin orientation for the random state
+  //      M += spin_matrix[y][x];
+  //    }
+  //    //cout << endl;
+  // }
   // setup initial energy
   for(int y =0; y < n_spins; y++) {
     for (int x= 0; x < n_spins; x++){
@@ -144,7 +166,7 @@ void Metropolis(int n_spins, long& idum, int **spin_matrix, double& E, double&M,
 } // end of Metropolis sampling over spins
 
 
-void output(int n_spins, int mcs, double temperature, double *average)
+void output(int n_spins, int mcs, double temperature, double *average, double calc_time)
 {
   double norm = 1/((double) (mcs));  // divided by total number of cycles 
   double Eaverage = average[0]*norm;
@@ -161,5 +183,6 @@ void output(int n_spins, int mcs, double temperature, double *average)
   ofile << setw(15) << setprecision(8) << Evariance/temperature/temperature;
   ofile << setw(15) << setprecision(8) << Maverage/n_spins/n_spins;
   ofile << setw(15) << setprecision(8) << Mvariance/temperature;
-  ofile << setw(15) << setprecision(8) << Mabsaverage/n_spins/n_spins << endl;
+  ofile << setw(15) << setprecision(8) << Mabsaverage/n_spins/n_spins;
+  ofile << setw(15) << setprecision(8) << calc_time << endl;;
 } // end output function
