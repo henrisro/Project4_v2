@@ -1,6 +1,0 @@
-Number of Monte Carlo trials: 10000
-Temperature:      Energy:      Heat capacity:  Magnetization:  Susceptibility:  abs(Magnetization):
-      1.0000000     -1.9970570    0.024083500     0.99924850   0.0016290991     0.99924850
-Number of Monte Carlo trials: 100000
-Temperature:      Energy:      Heat capacity:  Magnetization:  Susceptibility:  abs(Magnetization):
-      1.0000000     -1.9972124    0.022942114     0.99928925   0.0015380338     0.99928925
