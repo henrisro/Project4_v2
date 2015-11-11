@@ -55,7 +55,7 @@ int main(int argc, char* argv[])
 
   ofile << setiosflags(ios::showpoint | ios::uppercase);
   ofile << "Final number of Monte Carlo trials: " << mcs << endl;
-  ofile << "  Temperature:    Energy:      abs(Magnetization):    Total number of accepted moves: " << endl;
+  ofile << "  Temperature:    Energy:      abs(Magnetization):    Total fraction of accepted moves: " << endl;
 
   for ( double temperature = initial_temp; temperature <= final_temp; temperature+=temp_step){
     no_accepted = 0;
@@ -108,29 +108,29 @@ void initialize(int n_spins, double temperature, int **spin_matrix,
   // Commment/uncomment this section depending on use
   // Ground state configuration gives good convergence for low temperatures
 
-  // for(int y =0; y < n_spins; y++) {
-  //   for (int x= 0; x < n_spins; x++){
-  //     spin_matrix[y][x] = 1; // spin orientation for the ground state
-  //     M +=  (double) spin_matrix[y][x];
-  //   }
-  // }
+  for(int y =0; y < n_spins; y++) {
+    for (int x= 0; x < n_spins; x++){
+      spin_matrix[y][x] = 1; // spin orientation for the ground state
+      M +=  (double) spin_matrix[y][x];
+    }
+  }
   
   // Setup spin matrix and intial magnetization; random start configuration.
   // Commment/uncomment this section depending on use.
   // Random spin configuration gives good convergence for high temperatures
 
-  long idum_dum = -1;
-  for(int y =0; y < n_spins; y++) {
-     for (int x= 0; x < n_spins; x++){
-       double a = (double) ran1(&idum_dum);
-       int r = 1;
-       if (a < 0.5) {r = -1;}
-       //cout << r;
-       spin_matrix[y][x] = r; // spin orientation for the random state
-       M += spin_matrix[y][x];
-     }
-     //cout << endl;
-  }
+  // long idum_dum = -1;
+  // for(int y =0; y < n_spins; y++) {
+  //    for (int x= 0; x < n_spins; x++){
+  //      double a = (double) ran1(&idum_dum);
+  //      int r = 1;
+  //      if (a < 0.5) {r = -1;}
+  //      //cout << r;
+  //      spin_matrix[y][x] = r; // spin orientation for the random state
+  //      M += spin_matrix[y][x];
+  //    }
+  //    //cout << endl;
+  // }
   cout << "Initial magnetization: " << M << endl;
 
   // setup initial energy:
@@ -149,7 +149,7 @@ void Metropolis(int n_spins, long& idum, int **spin_matrix, double &E, double &M
   for(int y =0; y < n_spins; y++) {
     for (int x= 0; x < n_spins; x++){
       int ix = (int) (ran1(&idum)*(double)n_spins);
-      int iy = (int) (ran1(&idum)*(double)n_spins);
+      int iy = (int) (ran1(&idum)*(double)n_spins); 
       int deltaE =  2*spin_matrix[iy][ix]*
   (spin_matrix[iy][periodic(ix,n_spins,-1)]+
    spin_matrix[periodic(iy,n_spins,-1)][ix] +
@@ -175,5 +175,6 @@ void output(int n_spins, int mcs, double *average, int accepted, double temperat
   ofile << setw(15) << setprecision(8) << temperature;
   ofile << setw(15) << setprecision(8) << Eaverage*norm2;
   ofile << setw(15) << setprecision(8) << Mabsaverage*norm2;
-  ofile << setw(15) << setprecision(8) << accepted << endl;
+  // Print fraction of number of accepted configurations:
+  ofile << setw(15) << setprecision(8) << accepted/((double) (n_spins*n_spins*mcs)) << endl;
 } // end output function

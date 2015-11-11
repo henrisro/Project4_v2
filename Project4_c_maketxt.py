@@ -3,6 +3,6 @@
 
 import os
 os.system('g++ -c Project4_c.cpp lib.cpp')
-os.system('g++ -o Project4_c.out Project4_c.o lib.o -O2')
+os.system('g++ -o Project4_c.out Project4_c.o lib.o -O3')
 # Output file should be provided here as well:
-os.system('./Project4_c.out Ising2D_c_disordered_highT.txt')
+os.system('./Project4_c.out Ising2D_c_acceptance_ordered.txt')

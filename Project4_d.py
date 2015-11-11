@@ -3,7 +3,7 @@
 import os
 
 os.system('g++ -c Project4_d.cpp lib.cpp')
-os.system('g++ -o Project4_d.out Project4_d.o lib.o -O2')
+os.system('g++ -o Project4_d.out Project4_d.o lib.o -O3')
 # Output file should be provided here as well:
 os.system('./Project4_d.out Ising2D_d.txt')
 
@@ -41,10 +41,11 @@ print "Energy per spin std.: ", E_variance
 # Plot results:
 fig, ax = plt.subplots(1)
 plt.rcParams.update({'font.size': 14})
-n, bins, patches = plt.hist(E, 15, normed=1, facecolor='red', alpha=0.75, label='$\sigma_E^2 = %.3f$' % E_variance)
-(mu, sigma) = norm.fit(E)
-y = mlab.normpdf( bins, mu, sigma)
-l = plt.plot(bins, y, 'k--', linewidth=2, label='Best fit Gaussian, $\sigma = %.2f$' % sigma)
+n, bins, patches = plt.hist(E, 5, normed=1, facecolor='red', alpha=0.75, label='$\sigma_E^2 = %f$' % E_variance)
+# (mu, sigma) = norm.fit(E)
+# y = mlab.normpdf( bins, mu, sigma)
+# variance_fit = sigma*sigma
+# l = plt.plot(bins, y, 'k--', linewidth=2, label='Best fit Gaussian, $\sigma^2 = %.3f$' % variance_fit)
 
 # Checking the returned variables:
 print "n: ", n
@@ -57,6 +58,6 @@ plt.ylabel('Probability, $P(E)$')
 plt.legend(loc='upper right',fancybox='True')
 plt.title('Energy histogram after reached equilibrium, T = %.1f in units of kT/J' % T)
 plt.grid(True)
-ax.set_ylim([0.0,4.0])
-plt.savefig('Project4_d_probability_highT.eps', format='eps', dpi=1000)
+#ax.set_ylim([0.0,4.0])
+plt.savefig('Project4_d_probability_lowT.eps', format='eps', dpi=1000)
 plt.show()

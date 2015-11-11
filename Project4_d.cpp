@@ -32,10 +32,10 @@ int main(int argc, char* argv[])
 {
   char *outfilename;
   long idum;
-  int **spin_matrix, n_spins, mcs, mcs_i;
+  int **spin_matrix, n_spins, mcs;
   double w[17], temperature, E;
   int steady_state_tolerance_cycles = 5E3;
-  double E2, meanE, Evariance;
+  double meanE2, meanE, Evariance, norm;
 
   // Read in output file, abort if there are too few command-line arguments
   if( argc <= 1 ){
@@ -45,6 +45,8 @@ int main(int argc, char* argv[])
   }
   else { outfilename=argv[1]; }
   read_input(n_spins, temperature, mcs);
+  // Normalize with the number of spins in the grid:
+  double norm2 = 1.0/((double) (n_spins*n_spins));
   // Write header in output file:
   ofile.open(outfilename);
   ofile << setiosflags(ios::showpoint | ios::uppercase);
@@ -56,7 +58,7 @@ int main(int argc, char* argv[])
   spin_matrix = (int**) matrix(n_spins, n_spins, sizeof(int));
   //    initialise energy and magnetization 
   E = 0.;
-  E2 = meanE = 0.0;
+  meanE2 = meanE = 0.0;
   // setup array for possible energy changes
   for( int de =-8; de <= 8; de++) w[de+8] = 0;
   for( int de =-8; de <= 8; de+=4) w[de+8] = exp(-de/temperature);
@@ -64,24 +66,26 @@ int main(int argc, char* argv[])
   initialize(n_spins, temperature, spin_matrix, E);
   // start Monte Carlo computation:
   for (int cycles = 1; cycles <= mcs; cycles++){
-    mcs_i = cycles; // Current number of cycles.
     Metropolis(n_spins, idum, spin_matrix, E, w);
     // update expectation values if tolerance cycle is passed:
-    if (mcs_i >= steady_state_tolerance_cycles) {
+    if (cycles >= steady_state_tolerance_cycles) {
       output(n_spins, E);
-      meanE += E; E2 += E*E;
+      // We calculate the averages per spin this time:
+      meanE += E*norm2; meanE2 += E*E*norm2*norm2;
       }
 
   }
   // Calculate variance in energy for the cycles that occured after
   // reaching the steady state:
-  meanE /= (double)(mcs-steady_state_tolerance_cycles+1);
-  E2 /= (double)(mcs-steady_state_tolerance_cycles+1);
+  norm = 1/((double) (mcs - steady_state_tolerance_cycles+1));
+  meanE *= norm;
+  meanE2 *= norm;
+  
+  // Print some results for verification:
+  cout << "mean E per spin:   " << meanE << endl;
+  cout << "mean E^2 per spin: " << meanE2 << endl;
 
-  cout << "mean energy: " << meanE << endl;
-  cout << "mean E^2:    " << E2 << endl;
-
-  Evariance = (E2 - meanE*meanE)/n_spins/n_spins;
+  Evariance = meanE2 - meanE*meanE;
   ofile << " Final variance in energy per spin: ";
   ofile << setw(15) << setprecision(8) << Evariance << endl;
   // print results

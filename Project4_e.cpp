@@ -175,7 +175,7 @@ void output(int n_spins, int mcs, double temperature, double *average, double ca
   double M2average = average[3]*norm;
   double Mabsaverage = average[4]*norm;
   // all expectation values are per spin, divide by 1/n_spins/n_spins
-  double Evariance = (E2average- Eaverage*Eaverage)/n_spins/n_spins;
+  double Evariance = (E2average - Eaverage*Eaverage)/n_spins/n_spins;
   double Mvariance = (M2average - Mabsaverage*Mabsaverage)/n_spins/n_spins;
   ofile << setiosflags(ios::showpoint | ios::uppercase);
   ofile << setw(15) << setprecision(8) << temperature;
